@@ -9,7 +9,7 @@ namespace EventSystem
 {
     public class ClickEvent : GameEvent
     {
-        public ClickEvent(Action theaction) : base(theaction)
+        public ClickEvent(Core.Action theaction) : base(theaction,1)
         {
         }
     }

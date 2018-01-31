@@ -1,4 +1,8 @@
-﻿using SFML.System;
+﻿/*
+*	 Author : Michael Perreault
+*/
+
+using SFML.System;
 using System;
 using System.Collections.Generic;
 using System.Linq;

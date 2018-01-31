@@ -1,4 +1,8 @@
-﻿using System;
+﻿/*
+*	Author : Michael Perreault
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,13 +16,13 @@ namespace Core
     public class Store
     {
 
-        // Generic Box to store any class derived from BaseComponent
+        /// Generic Box to store  the components
         public class Box<T>
         {
             public Dictionary<Entity, T> Components_ = new Dictionary<Entity, T>();
         }
 
-        // This dictionnary contains the boxes , therefor every components are stored here
+        /// This dictionnary contains the boxes and stores every components by their type
         private Dictionary<uint, Box<BaseComponent>> Boxes_ = new Dictionary<uint, Box<BaseComponent>>();
 
 

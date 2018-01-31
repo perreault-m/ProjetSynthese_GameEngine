@@ -12,13 +12,13 @@ namespace EventSystem
 {
 
     //Missing the extension of Core.System
-    public class EventSystem : Core.Engine , ISubscriber
+    public class EventSystem : Core.Engine, ISubscriber
     {
         List<GameEvent> receiveEvents = new List<GameEvent>();
 
         RenderWindow Window_;
 
-        Dictionary<Keyboard.Key, GameEvent> keyEvent_ = new Dictionary<Keyboard.Key, GameEvent>();
+        GraphicSystem.GraphicSystem GraphicSystem_;
 
         Store Store_;
 
@@ -27,14 +27,11 @@ namespace EventSystem
         private uint UpdateRate_ = 100 / 25;
         private uint Updatecounter_ = 0;
 
-        public void Bind(Keyboard.Key k, GameEvent ev)
+        public EventSystem(GraphicSystem.GraphicSystem g, Store s)
         {
-            keyEvent_.Add(k, ev);
-        }
-        
-        public EventSystem(RenderWindow w, Store s)
-        {
-            Window_ = w;
+            GraphicSystem_ = g;
+
+            Window_ = g.Window_;
 
             Window_.KeyPressed += new EventHandler<KeyEventArgs>(OnKeyPressed);
             Window_.KeyReleased += new EventHandler<KeyEventArgs>(OnKeyReleased);
@@ -63,24 +60,24 @@ namespace EventSystem
 
         private void OnMouseEvent(object sender, MouseButtonEventArgs e)
         {
-            var clickables = Store_.GetBox<Clickable>();
-
-            if(clickables != null)
+            Console.WriteLine("DETECTED CLIC");
+            foreach (var entity in GraphicSystem_.CurrentScene_.Entities_)
             {
-                foreach(var clickable in clickables.Components_)
-                {
-                    var clickable_comp = (Clickable)clickable.Value;
+                var clickable = entity.GetComponent<Clickable>();
 
-                    var owner = clickable_comp.Owner_;
+                if (clickable != null)
+                {
+
+                    var owner = clickable.Owner_;
 
                     var size = owner.GetComponent<Components.Size>();
                     var pos = owner.GetComponent<Components.Position>();
 
-                    if(size != null && pos != null)
+                    if (size != null && pos != null)
                     {
-                        
-                        if(
-                            e.Y < pos.Y_ 
+
+                        if (
+                            e.Y < pos.Y_
                             || e.X < pos.X_
                             || e.Y > pos.Y_ + size.Height_
                             || e.X > pos.X_ + size.Width_
@@ -90,40 +87,54 @@ namespace EventSystem
                         }
                         else
                         {
-                            Receive(clickable_comp.ClickEvent_);
+                            Console.WriteLine("CLIC COLLISION");
+                            Receive(clickable.ClickEvent_);
                         }
                     }
                 }
             }
-        }
 
-        public void Receive(GameEvent gameEvent)
-        {
-            receiveEvents.Add(gameEvent);
         }
-
+        
         public void Update(Time elapsed)
         {
             Updatecounter_ += (uint)elapsed.AsMilliseconds();
 
             if(Updatecounter_ >= UpdateRate_)
             {
-                foreach (var key in keyPressed_)
+                Scene currentScene = GraphicSystem_.CurrentScene_;
+                
+                if(currentScene != null)
                 {
-                    if (keyEvent_.ContainsKey(key))
+                    // update cooldowns time
+                    foreach(var action in currentScene.keyEvent_.Values)
                     {
-                        GameEvent ev;
+                        action.LastCalled_ += Updatecounter_;
+                    }
 
-                        keyEvent_.TryGetValue(key, out ev);
+                    foreach (var key in keyPressed_)
+                    {
+                        if (currentScene.keyEvent_.Keys.Contains(key))
+                        {
+                            GameEvent ev;
 
-                        if (ev != null)
-                            Receive(ev);
+                            currentScene.keyEvent_.TryGetValue(key, out ev);
+
+                            if (ev != null)
+                            {
+                                if(ev.LastCalled_ / 1000 >= ev.Cooldown_ )
+                                {
+                                    Receive(ev);
+                                    ev.LastCalled_ = 0;
+                                }
+                                    
+                            }     
+                        }
                     }
                 }
 
                 foreach (var temp in receiveEvents)
                 {
-                    Console.WriteLine("EXECUTING ACTION");
                     temp.doAction();
                 }
 
@@ -132,6 +143,12 @@ namespace EventSystem
                 Updatecounter_ = 0;
             }
 
+        }
+        
+
+        public void Receive(GameEvent gameEvent)
+        {
+            receiveEvents.Add(gameEvent);
         }
     }
 }

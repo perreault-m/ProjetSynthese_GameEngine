@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Core.Components;
 
 namespace GraphicSystem
 {
@@ -15,6 +16,10 @@ namespace GraphicSystem
 
         // The application Window
         public RenderWindow Window_ { get; set; }
+
+        public int Width_ { get; set; } = 800;
+        public int Height_ { get; set; } = 600;
+        public bool DrawCollidableBounds { get; set; } = false;
 
         public uint UpdateRate_ { get; set; } = 1000 / 60;
         public uint Updatecounter_ { get; set; } = 0;
@@ -70,8 +75,16 @@ namespace GraphicSystem
         public void LoadScene()
         {
 
+
+            CurrentScene_.Background_ = new Sprite(new Texture(CurrentScene_.BackgroundSrc_));
+
+            var bc = CurrentScene_.Background_.Scale;
+            bc.X = Width_ / CurrentScene_.Background_.GetLocalBounds().Width;
+            bc.Y = Height_ / CurrentScene_.Background_.GetLocalBounds().Height;
+            CurrentScene_.Background_.Scale = bc;
+
             // Loop on each entities in the scene
-            foreach(Entity e in CurrentScene_.Entities_)
+            foreach (Entity e in CurrentScene_.Entities_)
             {
                 // Get it's graphic component
                 var g = e.GetComponent<Core.Components.Graphic>();
@@ -79,12 +92,24 @@ namespace GraphicSystem
                 // means the entity has a graphic component
                 if(g != null)
                 {
-
                     var g_comp = (Core.Components.Graphic)g;
 
                     // Initialisation of the sprite and texture
+
                     g_comp.Texture_ = new Texture(g_comp.Src_);
                     g_comp.Sprite_ = new Sprite(g_comp.Texture_);
+
+
+                    var p = e.GetComponent<Core.Components.Size>();
+
+                    if (p != null)
+                    {
+                        var sc = g_comp.Sprite_.Scale;
+                        sc.X = p.Width_ / g_comp.Sprite_.GetLocalBounds().Width;
+                        sc.Y = p.Height_ / g_comp.Sprite_.GetLocalBounds().Height;
+                        g_comp.Sprite_.Scale = sc;
+                    }
+                    
                 }
             }
         }
@@ -94,6 +119,8 @@ namespace GraphicSystem
         /// </summary>
         public void UnloadScene()
         {
+
+            CurrentScene_.Background_ = null;
 
             // Loop on each entity in the scene
             foreach (Entity e in CurrentScene_.Entities_)
@@ -129,8 +156,16 @@ namespace GraphicSystem
                 // Send the event to handlers
                 Window_.DispatchEvents();
 
+                Window_.Draw(CurrentScene_.Background_);
+
                 // Draw the Graphic components
                 DrawSprites();
+
+                // Draw the collidable bounds 
+                if (DrawCollidableBounds)
+                {
+                    DrawCollidables();
+                }
 
                 // Draw texts
                 DrawTexts();
@@ -139,6 +174,74 @@ namespace GraphicSystem
                 Window_.Display();
 
                 Updatecounter_ = 0;
+            }
+
+        }
+
+        private void DrawCollidables()
+        {
+            foreach(Entity e in CurrentScene_.Entities_)
+            {
+                var collidable = e.GetComponent<Collidable>();
+                
+                if(collidable != null)
+                {
+                    var position = e.GetComponent<Position>();
+
+                    if(position != null)
+                    {
+
+                        // top line
+                        RectangleShape line_top = new RectangleShape(new Vector2f(collidable.Width_,2));
+
+                        line_top.FillColor = Color.Red;
+
+                        var pos = line_top.Position;
+                        pos.X = position.X_ + collidable.Relative_X_;
+                        pos.Y = position.Y_ + collidable.Relative_Y_;
+                        line_top.Position = pos;
+
+                        Window_.Draw(line_top);
+
+                        // bottom line
+                        RectangleShape line_bottom = new RectangleShape(new Vector2f(collidable.Width_, 2));
+
+                        line_bottom.FillColor = Color.Red;
+
+                        pos = line_bottom.Position;
+                        pos.X = position.X_ + collidable.Relative_X_;
+                        pos.Y = position.Y_ + collidable.Height_ + collidable.Relative_Y_;
+                        line_bottom.Position = pos;
+
+                        Window_.Draw(line_bottom);
+
+                        // left line
+                        RectangleShape line_left = new RectangleShape(new Vector2f(2, collidable.Height_));
+
+                        line_left.FillColor = Color.Red;
+
+                        pos = line_left.Position;
+                        pos.X = position.X_ + collidable.Relative_X_;
+                        pos.Y = position.Y_ + collidable.Relative_Y_ ;
+                        line_left.Position = pos;
+
+                        Window_.Draw(line_left);
+
+                        // right line
+                        RectangleShape line_right = new RectangleShape(new Vector2f(2, collidable.Height_));
+
+                        line_right.FillColor = Color.Red;
+
+                        pos = line_right.Position;
+                        pos.X = position.X_ + collidable.Width_ + collidable.Relative_X_;
+                        pos.Y = position.Y_ + collidable.Relative_Y_ ;
+                        line_right.Position = pos;
+
+                        Window_.Draw(line_right);
+
+
+                    }
+                }
             }
 
         }
